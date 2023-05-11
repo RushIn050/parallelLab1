@@ -16,7 +16,7 @@ int main()
     int ways = 5, max_l_of_train = 100, number_of_trains = 100;
     std::vector<int> arrival_schedule(number_of_trains+1, 0);
     for (int i = 1; i < number_of_trains; ++i)
-        arrival_schedule[i] = rand() % 10 + 5;
+        arrival_schedule[i] = rand() % 10 + 2; //время до прибытия следующего поезда на станцию
     
     station_start(ways, arrival_schedule, max_l_of_train);
 }
