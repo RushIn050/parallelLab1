@@ -1,7 +1,7 @@
 #include "Train.h"
 
 
-train::train(int max_len, int ways_count, std::string name) {
+train::train(int max_len, int ways_count, std::string name) { // случайно задаём параметры поезда
 	length = rand() % (max_len-10) + 10;
 	speed = rand() % 50+50;
 	start_way = rand() % (ways_count) + 1;

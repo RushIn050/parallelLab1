@@ -17,6 +17,7 @@ class  station {
 	int lenght_of_transit = 110;
 	std::vector<int> arrival_of_trains; 
 	std::vector<bool> ways_is_free;
+	std::vector<bool> ways_priority;
 	std::map<std::string, bool> transits_is_free;
 	std::mutex Mtx;
 
