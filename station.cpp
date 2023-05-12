@@ -8,6 +8,7 @@ station::station(int& ws, std::vector<int>& arrival, int& max_l) {
 	std::cout << "station is created!\n";
 	count_of_ways = ws;
 	max_length_of_train = max_l;
+	lenght_of_way = ws * 100;
 	arrival_of_trains = arrival;
 	for (int i = 0; i <= count_of_ways; ++i) {
 		ways_is_free.push_back(true);
@@ -38,57 +39,57 @@ void station::station_work() {
 		train_name = "train " + std::to_string(i);
 		std::cout << "ready for " << train_name << std::endl;
 		std::shared_ptr<train> tr(new train(max_length_of_train, count_of_ways, train_name));
-		vecThread.at(i) = std::thread(&station::train_into_station, this, tr);
+		vecThread.at(i) = std::thread(&station::train_into_station, this, tr); // создание потока с новым поездом
 	}
 	for (int i = 1; i < vecThread.size(); ++i)
-		vecThread.at(i).join();
+		vecThread.at(i).join(); 
 }
 
 void station::train_into_station(std::shared_ptr<train> train) {
 	int way = train->get_start_way();
-	std::cout << "is ready " << ways_is_free[way] << " on " << way << " " << train->get_side() << " to " << train->get_end_way() << std::endl;
-	while(!ways_is_free[way] && !ways_priority[way])
+	std::cout << "is ready " << ways_is_free[way] << " on " << way << " way " << train->get_side() << " side to " << train->get_end_way() << std::endl;
+	while(!ways_is_free[way] || !ways_priority[way]) // ожидание, пока освободится путь для прибывшего к станции поезда
 		std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
 	{
 		std::lock_guard<std::mutex> lock(Mtx);
 		ways_is_free[way] = false; 
-		ways_is_free[train->get_end_way()] = false;
-		std::cout << train->get_name() << " in station on way" << way << std::endl;
+		ways_priority[train->get_end_way()] = false;
+		std::cout << train->get_name() << " in station on way" << way << std::endl; // занятие пути
 	}
 
 	if (way < train->get_end_way()) { 
-		if (train->get_side() == "to right") {
-			std::this_thread::sleep_for(std::chrono::milliseconds(way * 50 * 1000 / train->get_speed()));
+		if (train->get_side() == "to right") { // вариант движения для поезда, идущего направо, на путь с большим номером
+			std::this_thread::sleep_for(std::chrono::milliseconds(way * 50 * 1000 / train->get_speed())); // поезд подъезжает к нужной стрелке
 			for (int i = 0; i < abs(train->get_start_way() - train->get_end_way()); ++i) {
-				while (!transits_is_free["left " + std::to_string(way) + "-" + std::to_string(way + 1)] && !ways_is_free[way])
+				while (!transits_is_free["left " + std::to_string(way) + "-" + std::to_string(way + 1)] && !ways_is_free[way])// ждёт её освобождения
 					std::this_thread::sleep_for(std::chrono::milliseconds(50));
 				{
 					std::lock_guard<std::mutex> lock(Mtx);
-					transits_is_free["left " + std::to_string(way) + "-" + std::to_string(way + 1)] = false;
+					transits_is_free["left " + std::to_string(way) + "-" + std::to_string(way + 1)] = false; // занимает переезд
 					ways_is_free[way] = false;
 					std::cout << train->get_name() << " in transit: left " << std::to_string(way) + "-" + std::to_string(way + 1) << std::endl;
 				}
 				std::this_thread::sleep_for(std::chrono::milliseconds(train->get_length() * 1000 / train->get_speed()));
-				ways_is_free[way] = true;
+				ways_is_free[way] = true;// полностью заезжает на переезд, освобождает путь
 				
 				if (i>0)
 					transits_is_free["left " + std::to_string(way-1) + "-" + std::to_string(way)] = true;
 				++way;
 				std::this_thread::sleep_for(std::chrono::milliseconds((lenght_of_transit - train->get_length()) * 1000 / train->get_speed()));
 			}
-			while (!ways_is_free[way])
+			while (!ways_is_free[way]) // ожидает, когда освободится путь назначения
 				std::this_thread::sleep_for(std::chrono::milliseconds(50));
 			{
 				std::lock_guard<std::mutex> lock(Mtx);
-				ways_is_free[way] = false;
+				ways_is_free[way] = false; // занимает путь назначения
 				std::cout << train->get_name() << " in end way " << way << std::endl;
 			}
 			std::this_thread::sleep_for(std::chrono::milliseconds(train->get_length() * 1000 / train->get_speed()));
-			transits_is_free["left " + std::to_string(way - 1) + "-" + std::to_string(way)] = true;
-			std::this_thread::sleep_for(std::chrono::milliseconds((1000 - train->get_length() - way*50) * 1000 / train->get_speed()));
+			transits_is_free["left " + std::to_string(way - 1) + "-" + std::to_string(way)] = true; // освобождает последний переезд
+			std::this_thread::sleep_for(std::chrono::milliseconds((lenght_of_way - train->get_length() - way*50) * 1000 / train->get_speed())); // доезжает до конца пути
 		}
-		else {
+		else {// вариант движения для поезда, идущего налево, на путь с большим номером
 			std::this_thread::sleep_for(std::chrono::milliseconds(way * 50 * 1000 / train->get_speed()));
 			for (int i = 0; i < abs(train->get_start_way() - train->get_end_way()); ++i) {
 				while (!transits_is_free["right " + std::to_string(way + 1) + "-" + std::to_string(way)] && !ways_is_free[way]) {
@@ -117,12 +118,12 @@ void station::train_into_station(std::shared_ptr<train> train) {
 			}
 			std::this_thread::sleep_for(std::chrono::milliseconds(train->get_length() * 1000 / train->get_speed()));
 			transits_is_free["right " + std::to_string(way) + "-" + std::to_string(way - 1)] = true;
-			std::this_thread::sleep_for(std::chrono::milliseconds((1000 - train->get_length() - way * 50) * 1000 / train->get_speed()));
+			std::this_thread::sleep_for(std::chrono::milliseconds((lenght_of_way - train->get_length() - way * 50) * 1000 / train->get_speed()));
 		}
 	}
 	else if (way > train->get_end_way()) {
-		if (train->get_side() == "to right") {
-			
+		if (train->get_side() == "to right") {// вариант движения для поезда, идущего направо, на путь с менбшим номером
+			std::this_thread::sleep_for(std::chrono::milliseconds((count_of_ways * 50 + (way - 1) * 50) * 1000 / train->get_speed()));
 			for (int i = 0; i < abs(train->get_start_way() - train->get_end_way()); ++i) {
 				while (!transits_is_free["left " + std::to_string(way) + "-" + std::to_string(way - 1)] && !ways_is_free[way])
 					std::this_thread::sleep_for(std::chrono::milliseconds(50));
@@ -148,10 +149,10 @@ void station::train_into_station(std::shared_ptr<train> train) {
 			}
 			std::this_thread::sleep_for(std::chrono::milliseconds(train->get_length() * 1000 / train->get_speed()));
 			transits_is_free["left " + std::to_string(way + 1) + "-" + std::to_string(way)] = true;
-			std::this_thread::sleep_for(std::chrono::milliseconds((1000 - train->get_length() - way * 50) * 1000 / train->get_speed()));
+			std::this_thread::sleep_for(std::chrono::milliseconds((lenght_of_way - train->get_length() - (count_of_ways * 50 + (way - 1) * 50) * 1000 / train->get_speed())));
 		}
-		else {
-			std::this_thread::sleep_for(std::chrono::milliseconds((1000 - way * 50) * 1000 / train->get_speed()));
+		else {// вариант движения для поезда, идущего налево, на путь с меньшим номером
+			std::this_thread::sleep_for(std::chrono::milliseconds((lenght_of_way - (count_of_ways * 50 + (way - 1)*50) * 1000 / train->get_speed())));
 			for (int i = 0; i < abs(train->get_start_way() - train->get_end_way()); ++i) {
 				while (!transits_is_free["right " + std::to_string(way - 1) + "-" + std::to_string(way)] && !ways_is_free[way])
 					std::this_thread::sleep_for(std::chrono::milliseconds(50));
@@ -177,17 +178,17 @@ void station::train_into_station(std::shared_ptr<train> train) {
 			}
 			std::this_thread::sleep_for(std::chrono::milliseconds(train->get_length() * 1000 / train->get_speed()));
 			transits_is_free["right " + std::to_string(way) + "-" + std::to_string(way + 1)] = true;
-			std::this_thread::sleep_for(std::chrono::milliseconds((1000 - train->get_length() - way * 50) * 1000 / train->get_speed()));
+			std::this_thread::sleep_for(std::chrono::milliseconds((lenght_of_way - train->get_length() - (count_of_ways * 50 + (way - 1)*50) * 1000 / train->get_speed())));
 		}
 	}
 	else
-		std::this_thread::sleep_for(std::chrono::milliseconds(lenght_of_way*1000/train->get_speed()));
+		std::this_thread::sleep_for(std::chrono::milliseconds(lenght_of_way*1000/train->get_speed())); // вариант для поезда, не меняющего пути
 	
 		
 	{
 		std::lock_guard<std::mutex> lock(Mtx);
-		ways_is_free[way] = true;
-		ways_is_free[train->get_end_way()] = true;
+		ways_is_free[way] = true;// освобождает пути, уезжает со станции
+		ways_priority[train->get_end_way()] = true;
 		std::cout << train->get_name() << " left the station \n";
 	}
 
