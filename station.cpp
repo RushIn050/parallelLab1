@@ -54,7 +54,7 @@ void station::train_into_station(std::shared_ptr<train> train) {
 	{
 		std::lock_guard<std::mutex> lock(Mtx);
 		ways_is_free[way] = false; 
-		ways_is_free[train->get_end_way()] = false;
+		ways_priority[train->get_end_way()] = false;
 		std::cout << train->get_name() << " in station on way" << way << std::endl; // занятие пути
 	}
 
@@ -188,7 +188,7 @@ void station::train_into_station(std::shared_ptr<train> train) {
 	{
 		std::lock_guard<std::mutex> lock(Mtx);
 		ways_is_free[way] = true;// освобождает пути, уезжает со станции
-		ways_is_free[train->get_end_way()] = true;
+		ways_priority[train->get_end_way()] = true;
 		std::cout << train->get_name() << " left the station \n";
 	}
 
