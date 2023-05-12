@@ -89,7 +89,7 @@ void station::train_into_station(std::shared_ptr<train> train) {
 			transits_is_free["left " + std::to_string(way - 1) + "-" + std::to_string(way)] = true; // освобождает последний переезд
 			std::this_thread::sleep_for(std::chrono::milliseconds((lenght_of_way - train->get_length() - way*50) * 1000 / train->get_speed())); // доезжает до конца пути
 		}
-		else {
+		else {// вариант движения для поезда, идущего налево, на путь с большим номером
 			std::this_thread::sleep_for(std::chrono::milliseconds(way * 50 * 1000 / train->get_speed()));
 			for (int i = 0; i < abs(train->get_start_way() - train->get_end_way()); ++i) {
 				while (!transits_is_free["right " + std::to_string(way + 1) + "-" + std::to_string(way)] && !ways_is_free[way]) {
@@ -122,7 +122,7 @@ void station::train_into_station(std::shared_ptr<train> train) {
 		}
 	}
 	else if (way > train->get_end_way()) {
-		if (train->get_side() == "to right") {
+		if (train->get_side() == "to right") {// вариант движения для поезда, идущего направо, на путь с менбшим номером
 			std::this_thread::sleep_for(std::chrono::milliseconds((count_of_ways * 50 + (way - 1) * 50) * 1000 / train->get_speed()));
 			for (int i = 0; i < abs(train->get_start_way() - train->get_end_way()); ++i) {
 				while (!transits_is_free["left " + std::to_string(way) + "-" + std::to_string(way - 1)] && !ways_is_free[way])
@@ -151,7 +151,7 @@ void station::train_into_station(std::shared_ptr<train> train) {
 			transits_is_free["left " + std::to_string(way + 1) + "-" + std::to_string(way)] = true;
 			std::this_thread::sleep_for(std::chrono::milliseconds((lenght_of_way - train->get_length() - (count_of_ways * 50 + (way - 1) * 50) * 1000 / train->get_speed())));
 		}
-		else {
+		else {// вариант движения для поезда, идущего налево, на путь с меньшим номером
 			std::this_thread::sleep_for(std::chrono::milliseconds((lenght_of_way - (count_of_ways * 50 + (way - 1)*50) * 1000 / train->get_speed())));
 			for (int i = 0; i < abs(train->get_start_way() - train->get_end_way()); ++i) {
 				while (!transits_is_free["right " + std::to_string(way - 1) + "-" + std::to_string(way)] && !ways_is_free[way])
